@@ -28,22 +28,30 @@ EndProcedure // Инициализация()
 //  CoreContextParam - ExternalDataProcessorObject.xddTestRunner  - test runner data processor. 
 // 
 Procedure ЗаполнитьНаборТестов(TestsSet, CoreContextParam) Export
-	
-	If CurrentRunMode() = ClientRunMode.OrdinaryApplication Then
-		Return;	
-	EndIf;
-	
+    
+    If CurrentRunMode() = ClientRunMode.OrdinaryApplication Then
+        Return;
+    EndIf;
+    
     CoreContext = CoreContextParam;
     
     LoadSettings();
-	
-	Если Не НужноВыполнятьТест() Тогда
-		Возврат;
-	КонецЕсли;
-	
-	LoadSubsystemTests(TestsSet, Object.Settings.Subsystems); 
-    LoadSmokeCommonModuleTests(TestsSet, Object.Settings.Subsystems, Object.Settings.ExcludedCommonModules);
-        
+    
+    Если Не НужноВыполнятьТест() Тогда
+        Возврат;
+    КонецЕсли;
+    
+    Settings = Object.Settings;
+    
+    FavouritesCommonModules = LoadFavouritesCommonModules(Settings.FavouritesCommonModules);
+    
+    LoadSubsystemTests(TestsSet, Settings.Subsystems);
+    LoadSmokeCommonModuleTests(
+        TestsSet,
+        Settings.Subsystems,
+        Settings.ExcludedCommonModules,
+        FavouritesCommonModules);
+    
 EndProcedure // ЗаполнитьНаборТестов()
 
 #EndRegion // ServiceInterface
@@ -530,6 +538,25 @@ Procedure LoadSettings()
     
 EndProcedure // LoadSettings()
 
+&AtClient
+Function LoadFavouritesCommonModules(FavouritesCommonModules)
+    
+    Result = New Map;
+    
+    If FavouritesCommonModules.Count() > 0 Then
+        
+        For Each CommonModule In CommonModules() Do
+            If CoreContext.ЕстьВИсключаемойКоллекции(CommonModule.Name, FavouritesCommonModules) Then
+                Result.Insert(CommonModule.Name, True);
+            EndIf;
+        EndDo;
+        
+    EndIf;
+    
+    Return Result;
+    
+EndFunction
+
 &НаКлиенте
 Функция НужноВыполнятьТест()
 	
@@ -651,13 +678,19 @@ EndProcedure // LoadSubsystemTests()
 &AtClient
 // Only for internal use.
 //
-Procedure LoadSmokeCommonModuleTests(TestsSet, Subsystems, 
-    ExcludedCommonModules)
+Procedure LoadSmokeCommonModuleTests(TestsSet, Subsystems,
+    ExcludedCommonModules, FavouritesCommonModules)
     
     If Subsystems.Find("*") <> Undefined Then
         
+        ExistFavouritesCommonModules = (FavouritesCommonModules.Count() > 0);
+        
         GroupCommonModulesNotExists = True;
         For Each CommonModule In CommonModules() Do
+            
+            If ExistFavouritesCommonModules And FavouritesCommonModules.Get(CommonModule.Name) = Undefined Then
+                Continue;
+            EndIf;
             
             If ExcludedCommonModules.Find(CommonModule.Name) <> Undefined Then
                 Continue;
@@ -718,17 +751,19 @@ Procedure LoadSmokeCommonModuleTests(TestsSet, Subsystems,
         
         GroupCommonModulesNotExists = True;
         If OnlySubordinate Then
-            RecursivelyLoadSmokeCommonModuleTestsFromSubsystem(TestsSet, 
-                ParentSubsystem, 
-                SubsystemName, 
-                ExcludedCommonModules, 
-                GroupCommonModulesNotExists);            
-        Else
-            LoadSmokeCommonModuleTestsFromSubsystem(TestsSet, 
+            RecursivelyLoadSmokeCommonModuleTestsFromSubsystem(TestsSet,
                 ParentSubsystem,
-                SubsystemName, 
-                ExcludedCommonModules, 
-                GroupCommonModulesNotExists);    
+                SubsystemName,
+                ExcludedCommonModules,
+                FavouritesCommonModules,
+                GroupCommonModulesNotExists);
+        Else
+            LoadSmokeCommonModuleTestsFromSubsystem(TestsSet,
+                ParentSubsystem,
+                SubsystemName,
+                ExcludedCommonModules,
+                FavouritesCommonModules,
+                GroupCommonModulesNotExists);
         EndIf;
         
     EndDo;
@@ -738,15 +773,21 @@ EndProcedure // LoadSmokeCommonModuleTests()
 &AtClient
 // Only for internal use.
 //
-Procedure LoadSmokeCommonModuleTestsFromSubsystem(TestsSet, Subsystem, 
-    SubsystemName, ExcludedCommonModules, GroupCommonModulesNotExists)
+Procedure LoadSmokeCommonModuleTestsFromSubsystem(TestsSet, Subsystem,
+    SubsystemName, ExcludedCommonModules, GroupCommonModulesNotExists, FavouritesCommonModules)
 
+    ExistFavouritesCommonModules = (FavouritesCommonModules.Count() > 0);
+    
     CommonModules = CommonModules();
     For Each Item In SubsystemContent(SubsystemName) Do
         
         FullName = Item.FullName;
         If Find(FullName, "CommonModule") <> 0
-            Or Find(FullName, "ОбщийМодуль") <> 0 Then    
+            Or Find(FullName, "ОбщийМодуль") <> 0 Then
+            
+            If ExistFavouritesCommonModules And FavouritesCommonModules.Get(Item.Name) = Undefined Then
+                Continue;
+            EndIf;
             
             If ExcludedCommonModules.Find(Item.Name) <> Undefined Then
                 Continue;
@@ -775,22 +816,24 @@ EndProcedure // LoadSmokeCommonModuleTestsFromSubsystem()
 &AtClient
 // Only for internal use.
 //
-Procedure RecursivelyLoadSmokeCommonModuleTestsFromSubsystem(TestsSet, 
-    ParentSubsystem, SubsystemName, ExcludedCommonModules, GroupCommonModulesNotExists)
+Procedure RecursivelyLoadSmokeCommonModuleTestsFromSubsystem(TestsSet,
+    ParentSubsystem, SubsystemName, ExcludedCommonModules, FavouritesCommonModules, GroupCommonModulesNotExists)
     
     For Each Subsystem In ParentSubsystem.Subsystems Do
         
-        LoadSmokeCommonModuleTestsFromSubsystem(TestsSet, 
+        LoadSmokeCommonModuleTestsFromSubsystem(TestsSet,
             Subsystem, 
-            SubsystemName, 
-            ExcludedCommonModules, 
+            SubsystemName,
+            ExcludedCommonModules,
+            FavouritesCommonModules,
             GroupCommonModulesNotExists);
             
-        RecursivelyLoadSmokeCommonModuleTestsFromSubsystem(TestsSet, 
+        RecursivelyLoadSmokeCommonModuleTestsFromSubsystem(TestsSet,
             Subsystem,
-            SubsystemName, 
-            ExcludedCommonModules, 
-            GroupCommonModulesNotExists);      
+            SubsystemName,
+            ExcludedCommonModules,
+            FavouritesCommonModules,
+            GroupCommonModulesNotExists);
             
     EndDo;
         
