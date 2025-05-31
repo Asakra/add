@@ -43,7 +43,7 @@ def behaviortask(build, path, suffix, version){
                     // env.LOGOS_LEVEL = 'DEBUG'
                     // sh 'printenv'
 
-                    cmd "opm run initib file --buildFolderPath ./build --v8version ${version}"
+                    cmd "oscript tasks/initib.os file --buildFolderPath ./build --v8version ${version}"
 
                     withEnv(["VANESSA_JUNITPATH=./ServiceBases/junitreport/${suffix}", "VANESSA_cucumberreportpath=./ServiceBases/cucumber/${suffix}"]) {
                         //Маленький хак, переход в dir автоматом создает каталог и не надо писать кроссплатформенный mkdir -p
@@ -91,7 +91,7 @@ tasks["behavior video write"] = {
 
             //         cmd "opm install"
             //         cmd "opm list"
-            //         cmd "opm run initib file --buildFolderPath ./build --v8version 8.3.10"
+            //         cmd "oscript tasks/initib.os file --buildFolderPath ./build --v8version 8.3.10"
 
             //         cmd "opm run vanessa all --path ./features/Core/TestClient/  --tag video --settings ./tools/JSON/VBParams8310UF.json";
             //     } catch (e) {
@@ -147,7 +147,7 @@ tasks["xdd"] = {
                 //     env.LOGOS_LEVEL = 'DEBUG'
                 //     // sh 'printenv'
 
-                //     cmd "opm run initib file --buildFolderPath ./build --v8version 8.3.10"
+                //     cmd "oscript tasks/initib.os file --buildFolderPath ./build --v8version 8.3.10"
 
                 //     cmd "opm run xdd";
                 // } catch (e) {
@@ -251,9 +251,9 @@ firsttasks["slave"] = {
                 // env.LOGOS_LEVEL = 'DEBUG'
                 // sh 'printenv'
 
-                cmd "opm run init file --buildFolderPath ./build"
+                cmd "oscript tasks/init.os file --buildFolderPath ./build"
             // } catch (e) {
-            //     echo "opm run init ${it} status : ${e}"
+            //     echo "oscript tasks/init.os ${it} status : ${e}"
             //     currentBuild.result = 'UNSTABLE'
             // }
             stash excludes: 'build/cache.txt,build/ib/**,build/ibservice/**, build/ibservicexdd/**', includes: 'build/**', name: 'buildResults'
@@ -284,7 +284,7 @@ firsttasks["slave"] = {
 //         cmd(command);
 //         sh 'sleep 10'
 //         sh 'sudo docker exec -u ubuntu "$(cat /tmp/container_id_${BUILD_NUMBER})" /bin/bash -c "cd /home/ubuntu/code; DISPLAY=:1.0 sudo opm install && sudo opm update -all"'
-//         sh 'sudo docker exec -u ubuntu "$(cat /tmp/container_id_${BUILD_NUMBER})" /bin/bash -c "cd /home/ubuntu/code; DISPLAY=:1.0 opm run init && opm run clean"'
+//         sh 'sudo docker exec -u ubuntu "$(cat /tmp/container_id_${BUILD_NUMBER})" /bin/bash -c "cd /home/ubuntu/code; DISPLAY=:1.0 oscript tasks/init.os && opm run clean"'
 //         sh 'sudo rm -f add*.ospx'
 //         sh 'sudo docker exec -u ubuntu "$(cat /tmp/container_id_${BUILD_NUMBER})" /bin/bash -c "cd /home/ubuntu/code; DISPLAY=:1.0 opm build ./"'
 //         sh 'sudo rm -rf add.tar.gz && sudo rm -f add-devel.tar.gz && sudo rm -f add.zip'

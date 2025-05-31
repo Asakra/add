@@ -44,7 +44,7 @@
 	КонецЕсли;
 
 	КаталогПроекта = Исходники.КаталогПроекта();
-	ШаблонЗапуска = "oscript ./tools/runner.os decompileepf %1 %2 --ibname /F./build/ibservice";
+	ШаблонЗапуска = "vrunner decompileepf %1 %2 --ibconnection /F./build/ibservice";
 
 	КаталогСоответствующийКорню = Исходники.КаталогСоответствующийКорню();
 

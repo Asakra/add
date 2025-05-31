@@ -100,7 +100,7 @@ stages:
   allow_failure: false
   script:
     - chcp 65001
-    - opm run init file --v8version 8.3.10
+    - oscript tasks/init.os file --v8version 8.3.10
   artifacts:
     name: "%CI_JOB_STAGE%-%CI_COMMIT_REF_NAME%-ib"
     paths:

@@ -66,7 +66,7 @@ node("vanessa-add") {
     echo "Сборка бинарных файлов"
     timeout(90){
         timestamps {
-            cmd("opm run init file --v8version 8.3.10", isUnix)
+            cmd("oscript tasks/init.os file --v8version 8.3.10", isUnix)
         }
     }
 
